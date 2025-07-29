@@ -72,38 +72,50 @@ location = st.radio("Department", ["IPD", "OPD"], horizontal=True)
 
 # --- UI: Add Drug Box (Always Visible) ---
 st.markdown("### ➕ Add Drug")
+
+# Check if we need to clear inputs after adding
+if "clear_inputs" in st.session_state and st.session_state.clear_inputs:
+    st.session_state.add_drug = None
+    st.session_state.add_dose = None
+    st.session_state.clear_inputs = False
+
 add_col1, add_col2, add_col3 = st.columns([0.5, 0.3, 0.2], vertical_alignment="bottom", gap="small")
 
-new_drug = add_col1.selectbox("Drug Name", df["Drug"].unique(), key="add_drug", index=None, placeholder="Select a drug")
-new_dose = add_col2.number_input("Quantity", min_value=0.1, step=0.1, key="add_dose", value=None, placeholder="Insert number", format="%.2f")
+new_drug = add_col1.selectbox("Drug Name",
+                              df["Drug"].unique(),
+                              key="add_drug",
+                              index=None,
+                              placeholder="Select a drug",
+                              format_func=lambda x: x if pd.notna(x) else "Select a drug")
+new_dose = add_col2.number_input("Quantity", min_value=1.0, step=0.1, key="add_dose", value=None, placeholder="Insert number", format="%.2f")
 
-if add_col3.button("➕ Add to List", type="primary"):
+if add_col3.button("&#65291; Add to List", use_container_width=True, type="primary"):
     st.session_state.drug_list.append({"drug": new_drug, "dose": new_dose})
+    st.session_state.clear_inputs = True
     st.rerun()
 
 # --- UI: Drug List ---
 if st.session_state.drug_list:
     st.markdown("### 📋 Drug List")
-
     for idx, item in enumerate(st.session_state.drug_list):
         if st.session_state.edit_index == idx:
             # --- Inline Editing Row (wrapped in form) ---
             with st.form(key=f"edit_form_{idx}"):
-                edit_col1, edit_col2, edit_col3, edit_col4 = st.columns([3, 2, 1, 1], gap="small", vertical_alignment="bottom")
+                edit_col1, edit_col2, edit_col3, edit_col4 = st.columns([0.45, 0.25, 0.15, 0.15], gap="small", vertical_alignment="bottom")
 
                 drug_options = df["Drug"].unique().tolist()
                 edited_drug = edit_col1.selectbox(
-                    "Edit Drug Name", drug_options,
+                    "Edit Drug Name",
+                    drug_options,
                     index=drug_options.index(item["drug"]),
-                    key=f"edit_drug_{idx}"
-                )
+                    key=f"edit_drug_{idx}",
+                    format_func=lambda x: x if pd.notna(x) else "Select a drug")
                 edited_dose = edit_col2.number_input(
                     "Edit Quantity", min_value=0.1, step=0.1, value=item["dose"], format="%.2f",
-                    key=f"edit_dose_{idx}"
-                )
+                    key=f"edit_dose_{idx}")
 
-                save = edit_col3.form_submit_button("💾 Save")
-                cancel = edit_col4.form_submit_button("↩️ Back")
+                save = edit_col3.form_submit_button("Save", use_container_width=True)
+                cancel = edit_col4.form_submit_button("Back", use_container_width=True)
 
                 if save:
                     st.session_state.drug_list[idx] = {"drug": edited_drug, "dose": edited_dose}
@@ -114,6 +126,31 @@ if st.session_state.drug_list:
                     st.rerun()
 
         else:
+            # # --- Normal display row with buttons inside the box using single markdown ---
+            # st.markdown(f"""
+            #     <div style='background-color:#F0F2F6;padding:10px 15px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;min-height:60px;'>
+            #         <div style='flex-grow:1;text-align:left;'>
+            #             <p style='margin:0;line-height:1.4;'>
+            #                 💊 <b>{item['drug']}</b><br>
+            #                 Quantity: {item['dose']:.2f}
+            #             </p>
+            #         </div>
+            #     </div>
+            # """, unsafe_allow_html=True)
+
+            # st.markdown("""<div><br></div>""", unsafe_allow_html=True)
+
+            # # Functional buttons
+            # col1, col2 = st.columns([1, 1])
+            # with col1:
+            #     if st.button("✏️ Edit", key=f"edit_btn_{idx}", type="secondary", use_container_width=True):
+            #         st.session_state.edit_index = idx
+            #         st.rerun()
+            # with col2:
+            #     if st.button("🗑️ Delete", key=f"delete_btn_{idx}", type="secondary", use_container_width=True):
+            #         st.session_state.drug_list.pop(idx)
+            #         st.rerun()
+
             # --- Normal display row with buttons inside the box using single markdown ---
             st.markdown(f"""
                 <div style='background-color:#F0F2F6;padding:10px 15px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;min-height:60px;'>
@@ -128,14 +165,14 @@ if st.session_state.drug_list:
 
             st.markdown("""<div><br></div>""", unsafe_allow_html=True)
 
-            # Buttons below for functionality
+            # Functional buttons
             col1, col2 = st.columns([1, 1])
             with col1:
-                if st.button("✏️ Edit", key=f"edit_btn_{idx}", type="secondary", use_container_width=True):
+                if st.button("Edit", key=f"edit_btn_{idx}", type="secondary", use_container_width=True):
                     st.session_state.edit_index = idx
                     st.rerun()
             with col2:
-                if st.button("🗑️ Delete", key=f"delete_btn_{idx}", type="secondary", use_container_width=True):
+                if st.button("Delete", key=f"delete_btn_{idx}", type="secondary", use_container_width=True):
                     st.session_state.drug_list.pop(idx)
                     st.rerun()
 
